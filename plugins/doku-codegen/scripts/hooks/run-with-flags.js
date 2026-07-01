@@ -67,6 +67,12 @@ async function main() {
 
   if (!hookId || !relScriptPath) { process.stdout.write(raw); process.exit(0); }
 
+  // Canonical global kill-switch: DOKU_HOOKS_DISABLED=1 turns off every
+  // doku-codegen hook regardless of profile or per-hook flags.
+  if (process.env.DOKU_HOOKS_DISABLED === '1') {
+    process.stdout.write(raw); process.exit(0);
+  }
+
   if (!isHookEnabled(hookId, { profiles: profilesCsv })) {
     process.stdout.write(raw); process.exit(0);
   }

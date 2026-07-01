@@ -165,15 +165,63 @@ test('passes non-config file', () => {
 console.log('\npre-write-doku-config');
 const preWrite = require('../scripts/hooks/pre-write-doku-config');
 
-test('allows writing doku-codegen.local.md freely', () => {
+// Fixture helper for the credential-file guard: create a temp file with the
+// specified content and return its path.
+const fs = require('fs');
+const os = require('os');
+function makeConfigFixture(content) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'doku-codegen-test-'));
+  const file = path.join(dir, 'doku-codegen.local.md');
+  if (content !== null) fs.writeFileSync(file, content);
+  return file;
+}
+
+test('allows non-destructive write to local.md (no existing creds)', () => {
+  const file = makeConfigFixture(null); // file does not exist
   const input = JSON.stringify({
     tool_name: 'Write',
-    tool_input: { file_path: '/project/.claude/doku-codegen.local.md', content: '---\nLANGUAGE: Java\n---' },
+    tool_input: { file_path: file, content: '---\nLANGUAGE: Java\n---' },
     tool_output: {},
   });
   const r = preWrite.run(input);
-  assert(r.exitCode === 0, `expected exit 0 (always allowed), got ${r.exitCode}`);
-  assert(!r.stderr, `expected no warning for config file, got: ${r.stderr}`);
+  assert(r.exitCode === 0, `expected exit 0 (no existing file, nothing to protect), got ${r.exitCode}`);
+  assert(!r.stderr, `expected no stderr, got: ${r.stderr}`);
+});
+
+test('allows non-destructive write to local.md (creds preserved)', () => {
+  const file = makeConfigFixture(
+    '---\nCLIENT_ID: BRN-0201-000\nSECRET_KEY: sk_live_xyz\nLANGUAGE: Java\n---\n'
+  );
+  const input = JSON.stringify({
+    tool_name: 'Write',
+    tool_input: {
+      file_path: file,
+      // New content still carries the credentials — allowed
+      content: '---\nCLIENT_ID: BRN-0201-000\nSECRET_KEY: sk_live_xyz\nLANGUAGE: Python\n---\n',
+    },
+    tool_output: {},
+  });
+  const r = preWrite.run(input);
+  assert(r.exitCode === 0, `expected exit 0 (creds preserved), got ${r.exitCode}`);
+  assert(!r.stderr, `expected no stderr, got: ${r.stderr}`);
+});
+
+test('blocks credential-clearing overwrite of local.md', () => {
+  const file = makeConfigFixture(
+    '---\nCLIENT_ID: BRN-0201-000\nSECRET_KEY: sk_live_xyz\nLANGUAGE: Java\n---\n'
+  );
+  const input = JSON.stringify({
+    tool_name: 'Write',
+    tool_input: {
+      file_path: file,
+      // New content clears both credentials
+      content: '---\nCLIENT_ID:\nSECRET_KEY:\nLANGUAGE: Java\n---\n',
+    },
+    tool_output: {},
+  });
+  const r = preWrite.run(input);
+  assert(r.exitCode === 2, `expected exit 2 (destructive block), got ${r.exitCode}`);
+  assert(r.stderr && /Blocked destructive write/.test(r.stderr), `expected block message, got: ${r.stderr}`);
 });
 
 test('warns on DokuSignatureInterceptor overwrite', () => {

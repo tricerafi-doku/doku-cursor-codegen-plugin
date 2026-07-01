@@ -40,7 +40,7 @@ module.exports.run = function(rawInput) {
   const reminder =
     '[doku-codegen] Use the plugin skills for this task — do NOT generate DOKU payment code manually.\n' +
     '  To generate a client: /doku-codegen:generate [payment-method]\n' +
-    '  To fetch spec first:  /doku-spec [payment-method]\n';
+    '  To fetch spec first:  /doku-codegen:spec [payment-method]\n';
 
   return {
     stdout: rawInput,

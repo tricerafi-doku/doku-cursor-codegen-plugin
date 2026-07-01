@@ -158,6 +158,19 @@ For each header listed in `API_SPEC.REQUIRED_HEADERS`, verify the interceptor se
 
 ---
 
+### Notification / Webhook Receiver Checks
+
+Run only when a notification controller / route exists in `GENERATED_FILES` (or is discovered in the project during add-to-existing mode).
+
+| ID | Check | Severity | Relevant files |
+|----|-------|----------|----------------|
+| N1 | Inbound signature is verified — HMAC-SHA256 recomputed over `Client-Id\nRequest-Id\nRequest-Timestamp\nRequest-Target\nDigest` and compared constant-time before any side effects | FAIL | notification controller / verifier |
+| N2 | `Client-Id` header is validated against the merchant's expected `CLIENT_ID` — spoofed notifications from other merchants must be rejected | FAIL | notification controller / verifier |
+| N3 | `Request-Id` replay tracking present — repeated `Request-Id`s are treated as idempotent (200 without reprocessing) | WARN | notification controller / replay store |
+| N4 | Documented HTTPS-only in README — plain-HTTP notification endpoint is unsafe (Client-Id / body integrity depends on TLS) | WARN | README |
+
+---
+
 ## Step 4: Auto-Fix Minor Issues
 
 For findings classified as **WARN** that have a clear, safe, mechanical fix — apply the fix using the Edit tool and note it as `🔧 Auto-fixed`.

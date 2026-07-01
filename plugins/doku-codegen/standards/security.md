@@ -6,8 +6,10 @@ These standards are enforced on all generated SDK code. Removing any standard tr
 - **NEVER** hardcode credentials (Client ID, Secret Key, Private Key, Public Key, DOKU Public Key)
 - All secrets use named placeholders: `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_PRIVATE_KEY`, `DOKU_PUBLIC_KEY`, `DOKU_PUBLIC_KEY_DOKU`
 - Ask user for storage method: environment variables, vault, config file outside VCS, framework secret store
-- Generate `.env.example` with all required secrets and descriptions
-- Add secret file patterns to `.gitignore` (`.env`, `*.pem`, `*.key`)
+- Generate a secrets template appropriate to the target stack:
+  - **Non-Java stacks (Python, Node.js, Go, PHP)**: generate `.env.example` with all required secrets and descriptions; add `.env` to `.gitignore`.
+  - **Java / Kotlin (Spring Boot)**: **do NOT generate `.env`** — Spring Boot has no native `.env` loader. Instead generate an `application-example.yml` (or `application-<profile>.yml.example`) with the secret placeholders, and rely on Spring's `${DOKU_CLIENT_ID:}` env-var injection at runtime. See `standards/java.md` for details.
+- Add secret file patterns to `.gitignore` regardless of stack (`.env`, `*.pem`, `*.key`, `application-local.yml`).
 
 ## Transport Security
 - Enforce TLS 1.2+ on all outbound HTTP connections

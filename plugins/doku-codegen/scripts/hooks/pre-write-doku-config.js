@@ -2,14 +2,23 @@
 /**
  * DOKU Codegen — PreToolUse: Write|Edit
  *
- * Warns when modifying generated DOKU interceptor/config files.
- * doku-codegen.local.md is a general config file (spec, language, credentials)
- * and must remain freely writable by all skills — no protection on it.
+ * Two responsibilities:
+ *
+ *   1. Warn when modifying shared DOKU infrastructure files
+ *      (interceptors, feign configs) — manual edits often break signing.
+ *
+ *   2. Block destructive overwrites of the credentials config
+ *      (.claude/doku-codegen.local.md). Skill writes that add or update
+ *      fields pass through unchanged; writes that would clear an existing
+ *      CLIENT_ID or SECRET_KEY are blocked (exit 2). Users must go through
+ *      /doku-codegen:setup-credentials or manually edit the file outside
+ *      the Agent to remove credentials.
  *
  * Profile: standard, strict
  */
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 
 const PROTECTED_PATTERNS = [
@@ -21,6 +30,28 @@ const PROTECTED_PATTERNS = [
   /DokuLoggingInterceptor/,
 ];
 
+const CONFIG_FILE_BASENAME = 'doku-codegen.local.md';
+
+function extractField(content, field) {
+  if (typeof content !== 'string') return '';
+  // Match YAML-ish "  FIELD: value" or "FIELD: value" (indented or not).
+  // NOTE: use [ \t]* (not \s*) after the colon so the horizontal-only whitespace
+  // doesn't greedily consume the line-terminating newline.
+  const re = new RegExp('(?:^|\\n)[ \\t]*' + field + '[ \\t]*:[ \\t]*(.*?)(?=\\n|$)');
+  const m = content.match(re);
+  return m ? m[1].trim() : '';
+}
+
+function hasCredential(value) {
+  if (!value) return false;
+  const v = value.trim();
+  // Empty, quoted-empty, or the literal placeholder are treated as absent.
+  if (v === '' || v === '""' || v === "''") return false;
+  if (/^<.*>$/.test(v)) return false;
+  if (/^(your_|placeholder|xxx)/i.test(v)) return false;
+  return true;
+}
+
 module.exports.run = function(rawInput) {
   let input;
   try { input = JSON.parse(rawInput); } catch { return { stdout: rawInput, exitCode: 0 }; }
@@ -28,8 +59,49 @@ module.exports.run = function(rawInput) {
   const filePath = input.tool_input && (input.tool_input.file_path || '');
   if (!filePath) return { stdout: rawInput, exitCode: 0 };
 
-  // Warn on DOKU shared infrastructure files
   const fileName = path.basename(filePath);
+
+  // 1. Credential-file protection — destructive-overwrite block
+  if (fileName === CONFIG_FILE_BASENAME) {
+    let existing = '';
+    try { existing = fs.readFileSync(filePath, 'utf8'); } catch { existing = ''; }
+
+    if (existing) {
+      const oldClientId  = extractField(existing, 'CLIENT_ID');
+      const oldSecretKey = extractField(existing, 'SECRET_KEY');
+
+      // Only guard when there is actually something to lose.
+      if (hasCredential(oldClientId) || hasCredential(oldSecretKey)) {
+        const newContent = (input.tool_input.content !== undefined)
+          ? String(input.tool_input.content)
+          : '';
+
+        const newClientId  = extractField(newContent, 'CLIENT_ID');
+        const newSecretKey = extractField(newContent, 'SECRET_KEY');
+
+        const clearsClientId  = hasCredential(oldClientId)  && !hasCredential(newClientId);
+        const clearsSecretKey = hasCredential(oldSecretKey) && !hasCredential(newSecretKey);
+
+        if (clearsClientId || clearsSecretKey) {
+          const missing = [
+            clearsClientId  ? 'CLIENT_ID'  : null,
+            clearsSecretKey ? 'SECRET_KEY' : null,
+          ].filter(Boolean).join(' and ');
+
+          return {
+            stdout: rawInput,
+            stderr: `[doku-codegen] Blocked destructive write to ${CONFIG_FILE_BASENAME}: the new content would clear ${missing}.\nUse /doku-codegen:setup-credentials to rotate or update credentials, or edit the file outside the Agent to remove them.\n`,
+            exitCode: 2,
+          };
+        }
+      }
+    }
+
+    // Non-destructive write to the config file — allow.
+    return { stdout: rawInput, exitCode: 0 };
+  }
+
+  // 2. Warn on DOKU shared infrastructure files
   const isProtected = PROTECTED_PATTERNS.some(p => p.test(fileName));
   if (isProtected) {
     return {

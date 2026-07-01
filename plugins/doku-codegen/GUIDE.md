@@ -120,6 +120,7 @@ The plugin then, in order:
 | `/checklist` | Run production-readiness checks |
 | `/test` | Send a real request to DOKU sandbox to verify signature and connectivity |
 | `/postman` | Export a Postman collection with a signature pre-request script |
+| `/webhook` | Scaffold an inbound notification / webhook receiver |
 | `/save-session [note]` | Snapshot the current generation state |
 | `/resume-session` | Continue from a saved snapshot |
 
@@ -136,6 +137,7 @@ You can also speak naturally — the plugin routes to the right skill:
 | "production checklist", "ready to ship" | `production-checklist` |
 | "upgrade DOKU client", "refresh after spec change" | `upgrade` |
 | "generate Postman collection" | `generate-postman` |
+| "add DOKU webhook", "handle DOKU callbacks", "verify notification signature" | `webhook-receiver` |
 
 ### Agents
 
@@ -211,11 +213,31 @@ The finding is in **View → Output**:
 
 Open the standards document referenced in the warning (`standards/python.md`, `standards/java.md`, etc.) for the required pattern.
 
-To temporarily silence a specific hook (not recommended for production code):
+### Silencing hooks
+
+Three environment variables control hook execution, from most targeted to most global:
+
+| Env var | Scope | When to use |
+|---|---|---|
+| `DOKU_DISABLED_HOOKS="<hook-id>[,<hook-id>...]"` | Per-hook | Silence one or a few noisy hooks; leave the rest running. Hook IDs match the first arg passed to `run-with-flags.js` (e.g. `post-write-python-check`, `pre-write-doku-config`, `session-start`). |
+| `DOKU_HOOK_PROFILE="minimal"` | Profile-based | Disable the "standard" and "strict" profile hooks; keep only critical ones. Profiles are declared per-hook in `hooks.json`. |
+| `DOKU_HOOKS_DISABLED=1` | Global kill | Turns off every doku-codegen hook. Useful when troubleshooting whether a hook is causing an Agent problem, or when running a scripted operation that must not be interrupted. |
+
+Example — silence a single noisy hook:
 
 ```bash
 export DOKU_DISABLED_HOOKS="post-write-python-check"
 ```
+
+Example — turn everything off temporarily:
+
+```bash
+export DOKU_HOOKS_DISABLED=1
+# ...do your thing...
+unset DOKU_HOOKS_DISABLED
+```
+
+None of these are recommended for production code — they're for local debugging.
 
 ### Where the logs are
 

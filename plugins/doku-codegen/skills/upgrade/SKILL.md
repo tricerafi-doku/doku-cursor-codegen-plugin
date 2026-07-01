@@ -22,30 +22,46 @@ If config missing → stop:
 ❌ Config not found. Run /doku-codegen:setup-credentials first.
 ```
 
-If `API_SPEC` is present but `API_SPEC_PREVIOUS` is missing → stop:
+**Determine target slug.** If the user specified an API (e.g. "upgrade the checkout client"), use that as the slug. Otherwise ask which API to upgrade, listing the keys present in `API_SPECS` (and falling back to the top-level `API_SPEC` if only the legacy pointer exists).
+
+For the chosen `<slug>`, resolve:
+- **New spec** = `API_SPECS[<slug>]` (or top-level `API_SPEC` if only the legacy shape is present)
+- **Old spec** = `API_SPECS_PREVIOUS[<slug>]` (or top-level `API_SPEC_PREVIOUS` if only the legacy shape is present)
+
+If the new spec is missing → stop:
 ```
-⚠️  No previous spec found to compare against.
+⚠️  No spec found for slug '<slug>'. Run /doku-codegen:fetch-api-spec first.
+```
+
+If the old spec is missing → stop:
+```
+⚠️  No previous spec found for slug '<slug>' to compare against.
 
 To use this skill:
-  1. Run /doku-codegen:fetch-api-spec  ← fetches new spec, archives current as API_SPEC_PREVIOUS
+  1. Run /doku-codegen:fetch-api-spec  ← fetches new spec, archives current as API_SPECS_PREVIOUS[<slug>]
   2. Run /doku-codegen:upgrade         ← diffs and patches changed files
 ```
 
-If both `API_SPEC` and `API_SPEC_PREVIOUS` are present → continue.
+**Refuse cross-API diffs.** If the resolved old and new specs have different `API_SLUG` / `API_NAME` values, stop with an error — do not attempt to diff two different APIs against each other.
+
+If both same-slug specs are present → continue.
 
 ---
 
 ## Step 2: Diff Specs
 
-Compare these fields between `API_SPEC_PREVIOUS` (old) and `API_SPEC` (new):
+Compare these fields between the resolved old and new specs (both for the same `<slug>`):
 
 | Field | Change type |
 |---|---|
-| `API_ENDPOINT` | Endpoint path or method changed |
+| `ENDPOINTS` | Endpoint added, removed, path or method changed |
+| `API_ENDPOINT` | (Legacy) endpoint path or method changed |
 | `REQUEST_SCHEMA` | New field, removed field, type change, required flag change |
 | `RESPONSE_SCHEMA` | New field, removed field, type change |
 | `REQUIRED_HEADERS` | New header, removed header |
 | `SIGNATURE_ALGORITHM` | Algorithm changed |
+| `SIGNATURE_TYPE` | SNAP / NON_SNAP flip — treat as major change |
+| `TOKEN_ENDPOINT` | Path changed |
 | `AUTH_NOTES` | Auth flow changed |
 
 Record all differences found.

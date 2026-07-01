@@ -36,6 +36,7 @@ In Agent chat, run `/generate` and Cursor's Agent should walk you through: detec
 | `production-checklist` | "production checklist" | Run 8 readiness checks before go-live |
 | `upgrade` | "upgrade DOKU client" | Diff old vs new spec, patch only changed files |
 | `generate-postman` | "generate Postman collection" | Export Postman collection with signature pre-request script |
+| `webhook-receiver` | "add DOKU webhook", "handle DOKU callbacks" | Scaffold inbound notification listener with HMAC-SHA256 verifier and replay guard |
 
 ## Slash commands
 
@@ -46,6 +47,7 @@ In Agent chat, run `/generate` and Cursor's Agent should walk you through: detec
 | `/checklist` | Run production readiness checks |
 | `/test` | Send a sandbox test request |
 | `/postman` | Export a Postman collection |
+| `/webhook` | Scaffold an inbound notification / webhook receiver |
 | `/save-session` | Save current generation state |
 | `/resume-session` | Resume a saved session |
 

@@ -42,7 +42,7 @@ Handles everything inline: detect stack → fetch API spec → collect credentia
 3. Scans project layout to detect package structure (add-to-existing mode)
 4. Shows exact file list for confirmation before writing anything
 5. Dispatches to **sdk-generator** agent (Opus) for code writing
-6. Chains to **integration-validator** agent (Sonnet) for 22-point quality check
+6. Chains to **integration-validator** agent (Sonnet) for 37-point quality check
 7. Reports results with any blocking issues or auto-fixes applied
 
 ## Related agents

@@ -199,7 +199,54 @@ Signature interceptor uses `config.getEndpointPath()` as `Request-Target` — no
 
 ---
 
+## Step 3c: Notification / Webhook Receiver (when dispatched by webhook-receiver skill)
+
+When called by `webhook-receiver` (instead of `setup-project`), the input context includes `NOTIFICATION_PATH`, `REPLAY_STORE`, and `PROCESSING_MODEL` in addition to the usual `LANGUAGE`/`FRAMEWORK`/`API_SPEC`. Generate the following files:
+
+**1. Notification controller / route** — mounted at `NOTIFICATION_PATH`, HTTP `POST`:
+- Read the raw request body as a string. Do NOT parse-then-reserialize before signature verification — the DOKU signature is computed over the raw body.
+- Read required headers: `Client-Id`, `Request-Id`, `Request-Timestamp`, `Signature`.
+- Reject with 400 if any of those four headers is missing.
+- Delegate to the inbound-signature verifier.
+
+**2. Inbound-signature verifier** — Non-SNAP HMAC-SHA256:
+```
+digest       = base64(SHA-256(rawBody))
+signingStr   = "Client-Id:{hdr}\nRequest-Id:{hdr}\nRequest-Timestamp:{hdr}\nRequest-Target:{NOTIFICATION_PATH}\nDigest:{digest}"
+expected     = "HMACSHA256=" + base64(HMAC-SHA256(signingStr, secretKey))
+verify       = constant-time compare (expected, receivedSignatureHeader)
+```
+- Use language-idiomatic constant-time compare: `hmac.compare_digest` (Python), `MessageDigest.isEqual` (Java), `crypto.timingSafeEqual` (Node.js), `hmac.Equal` (Go).
+- Reject with 400 on mismatch.
+- Reject with 400 if the `Client-Id` header value does not match the expected merchant `CLIENT_ID` from config.
+
+**3. Replay-guard adapter** — implementation per `REPLAY_STORE` choice:
+- `in-memory` → thread-safe Map/dict with 24-hour TTL entries, background cleanup task.
+- `redis` → `SET NX EX 86400` on the `Request-Id` key.
+- `database` → append-only `notification_seen(request_id PK, seen_at)` table with query-before-insert.
+
+Contract: `wasSeen(requestId) -> bool` (returns true if we've already processed) and `markSeen(requestId)` (idempotent insert with 24-hour TTL).
+
+Verifier flow:
+```
+if replayGuard.wasSeen(requestId): return 200 OK (idempotent ack)
+if not verifySignature(...): return 400
+replayGuard.markSeen(requestId)
+respond 200 OK with {"responseCode":"2000000","responseMessage":"Successful"}
+process(rawBody) asynchronously per PROCESSING_MODEL
+```
+
+**4. 2xx-ack semantics** — respond 200 with `{"responseCode": "2000000", "responseMessage": "Successful"}` BEFORE the processing action starts. If processing fails, log — never return non-2xx to DOKU (they will retry indefinitely).
+
+**5. HTTPS-only reminder** — append a `README.md` (or amend the existing one) noting that `NOTIFICATION_PATH` must be exposed over HTTPS in production. DOKU rejects `http://` endpoints in prod.
+
+**Timestamp format note:** take the `Request-Timestamp` format DOKU uses from the fetched spec's example values (ISO8601 with `+HH:MM` offset vs UTC `Z` — DOKU currently mixes both across APIs). Default to UTC `Z` when the spec is silent.
+
+---
+
 ## Step 4: Signature Algorithms (reference)
+
+**Timestamp format note (applies to all algorithms below):** take the timestamp format DOKU uses from the fetched spec's example values (ISO8601 with `+HH:MM` offset vs UTC `Z` — DOKU currently mixes both across APIs). Default to UTC `Z` (e.g. `2026-07-01T08:45:42Z`) when the spec is silent.
 
 **Non-SNAP HMAC-SHA256:**
 ```

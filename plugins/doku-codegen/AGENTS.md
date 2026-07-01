@@ -24,7 +24,7 @@ Security and correctness auditor. Chained after `sdk-generator` completes.
 
 **When invoked:**
 1. Loads same standards files as sdk-generator
-2. Runs 22 checks across Security, Signature Correctness, Headers, Wiring, Code Quality
+2. Runs 37 checks across Security, Signature Correctness, Headers, Wiring, Code Quality, and Notification/Webhook Receiver safety
 3. Auto-fixes safe mechanical issues (@JsonIgnoreProperties, @Valid, @JsonInclude)
 4. Returns PASS / PASS_WITH_WARNINGS / FAIL with structured findings
 
@@ -96,7 +96,7 @@ setup-project skill (orchestrator)
   │             └── Write all files
   ├── Step 6b: Dispatch → integration-validator agent (Sonnet)
   │             ├── Load standards
-  │             ├── Run 22 checks
+  │             ├── Run 37 checks
   │             ├── Auto-fix minor issues
   │             └── Return VALIDATION_RESULT
   └── Step 7: Post-generation message (uses VALIDATION_RESULT)
@@ -131,5 +131,5 @@ setup-project skill (orchestrator)
 
 **Profile membership:**
 - `minimal` — no hooks fire
-- `standard` (default) — all 13 hooks fire
-- `strict` — all 13 hooks fire (stricter thresholds in future versions)
+- `standard` (default) — all 14 hooks fire
+- `strict` — all 14 hooks fire (stricter thresholds in future versions)

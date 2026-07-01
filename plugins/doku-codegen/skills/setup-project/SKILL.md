@@ -54,24 +54,36 @@ Fetch `https://developers.doku.com/sitemap-pages.xml` — this is the ONLY relia
 
 **Immediately write the spec to config before doing anything else.** Do not hold it in memory. Use the Write tool to save `.claude/doku-codegen.local.md` with the API_SPEC block now — before asking for credentials, before asking about mode, before generating any file list. This ensures the spec survives any interruption.
 
+Store the spec under `API_SPECS[<api-slug>]` and mirror it to the top-level `API_SPEC` for backward-compat (see `fetch-api-spec` skill for the full block shape). Minimal shape:
+
 ```
 ---
 LANGUAGE: (leave blank if not yet detected)
-API_SPEC:
-  API_NAME: <value>
-  API_ENDPOINT: <value>
-  BASE_URL:
-    sandbox: <value>
-    production: <value>
-  REQUIRED_HEADERS: <value>
-  REQUEST_SCHEMA: <value>
-  RESPONSE_SCHEMA: <value>
-  SIGNATURE_ALGORITHM: <value>
-  AUTH_NOTES: <value>
-SPEC_SOURCE_URL: <url fetched>
-SPEC_FETCHED_AT: <ISO timestamp>
+API_SPECS:
+  <api-slug>:
+    API_NAME: <value>
+    ENDPOINTS:
+      - method: <value>
+        path: <value>
+        name: <value>
+    API_ENDPOINT: <ENDPOINTS[0].method + " " + ENDPOINTS[0].path>
+    BASE_URL:
+      sandbox: <value>
+      production: <value>
+    REQUIRED_HEADERS: <value>
+    REQUEST_SCHEMA: <value>
+    RESPONSE_SCHEMA: <value>
+    SIGNATURE_ALGORITHM: <value>
+    SIGNATURE_TYPE: <SNAP | NON_SNAP>
+    TOKEN_ENDPOINT: <value or empty>
+    AUTH_NOTES: <value>
+    SPEC_SOURCE_URL: <url fetched>
+    SPEC_FETCHED_AT: <ISO timestamp>
+API_SPEC: <copy of API_SPECS[<active-slug>] for back-compat>
 ---
 ```
+
+**Select the active spec by requested api-slug.** If the user asked to generate a specific API (e.g. `virtual-account`), use `API_SPECS[virtual-account]` as `API_SPEC`. If only one slug is present, use it.
 
 Print: `✅ Spec saved to .claude/doku-codegen.local.md`
 
@@ -83,7 +95,7 @@ Print: `🔑 No credentials found — let's set them up...`
 Ask:
 1. "Enter your DOKU Client-Id (from DOKU Back Office):"
 2. "Enter your DOKU Secret Key:"
-3. Only if API_SPEC.SIGNATURE_TYPE = SNAP or AUTH_NOTES mentions "B2B token": "Enter path to your RSA private key PEM file:"
+3. Only if `API_SPEC.SIGNATURE_TYPE == SNAP` or `AUTH_NOTES` mentions "B2B token": "Enter path to your RSA private key PEM file:"
 
 Ask environment: Sandbox (Recommended) or Production. Save BASE_URL accordingly.
 

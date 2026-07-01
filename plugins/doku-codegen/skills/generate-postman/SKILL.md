@@ -82,7 +82,8 @@ pm.environment.set("DOKU_SIGNATURE", "HMACSHA256=" + sig);
 // Step 1: Get B2B access token (chained pre-request)
 const clientId   = pm.environment.get("DOKU_CLIENT_ID");
 const privateKey = pm.environment.get("DOKU_PRIVATE_KEY");
-const tokenEndpoint = pm.environment.get("DOKU_BASE_URL") + "/snap/v1/access-token/b2b";
+// Prefer API_SPEC.TOKEN_ENDPOINT from config; fall back to canonical DOKU path.
+const tokenEndpoint = pm.environment.get("DOKU_BASE_URL") + (pm.environment.get("DOKU_TOKEN_ENDPOINT") || "/authorization/v1/access-token/b2b");
 
 // Compute RSA-SHA256 string-to-sign for token request
 const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');

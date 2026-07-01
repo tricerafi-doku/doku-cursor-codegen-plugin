@@ -50,9 +50,23 @@ const CLIENT_INDICATORS = [
   /http\.NewRequest|http\.Client/,
 ];
 
-// Signature interceptor indicators
+// Signature interceptor indicators — broad enough to catch merchant-named
+// signers in add-to-existing projects (custom class names, generic HMAC usage,
+// or manual string-to-sign concatenation).
 const INTERCEPTOR_INDICATORS = [
-  /SignatureInterceptor|DokuSigning|HmacSha256|hmac_sha256|computeSignature|generateSignature/i,
+  // Explicit DOKU / SNAP naming
+  /SignatureInterceptor|DokuSigning|SnapSigning|SnapInterceptor/i,
+  // Generic signer / interceptor patterns merchant projects use
+  /AuthSigner|RequestSigner|HmacSigner|SigningInterceptor/i,
+  // Direct HMAC computation
+  /HmacSha256|hmac_sha256|HmacSha512|hmac_sha512|computeSignature|generateSignature|createSignature/i,
+  // Standard-library HMAC constructors across languages
+  /Mac\.getInstance\(["']?Hmac(SHA256|SHA512)/,          // Java
+  /hmac\.new\s*\(/,                                       // Python
+  /crypto\.createHmac\s*\(\s*["'](sha256|sha512)/i,       // Node.js
+  /hmac\.New\s*\(\s*sha(256|512)\.New/,                   // Go
+  // String-to-sign concatenation using DOKU's canonical field names
+  /Client-Id["'\s]*[+.,]\s*["']?\\?n["']?\s*[+.,]?\s*Request-Id/,
 ];
 
 function fileContainsAny(content, patterns) {
@@ -141,7 +155,10 @@ module.exports.run = function(rawInput) {
         return interceptorFile !== null;
       })();
     if (!anyInterceptor) {
-      findings.push(`  [FAIL] Client file(s) written but no DOKU signature interceptor found in project`);
+      // Downgrade to WARN — add-to-existing merchants often reuse an existing
+      // signer under a naming convention this hook can't recognize. Point
+      // integrators at the check rather than blocking.
+      findings.push(`  [WARN] Client file(s) written but no DOKU signature interceptor detected. If your project already has a signer under a custom name, ignore this — otherwise run /doku-codegen:generate to scaffold one.`);
     }
   }
 
