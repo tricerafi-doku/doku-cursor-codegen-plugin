@@ -1,0 +1,67 @@
+{
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js session-start scripts/hooks/session-start.js standard,strict"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js pre-write-doku-config scripts/hooks/pre-write-doku-config.js standard,strict",
+        "matcher": "Write|Edit"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js config-protection scripts/hooks/config-protection.js standard,strict",
+        "matcher": "Write|Edit"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-edit-accumulator scripts/hooks/post-edit-accumulator.js standard,strict",
+        "matcher": "Write|Edit"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-write-java-check scripts/hooks/post-write-java-check.js standard,strict",
+        "matcher": "Write"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-write-kotlin-check scripts/hooks/post-write-kotlin-check.js standard,strict",
+        "matcher": "Write"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-write-python-check scripts/hooks/post-write-python-check.js standard,strict",
+        "matcher": "Write"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-write-node-check scripts/hooks/post-write-node-check.js standard,strict",
+        "matcher": "Write"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-write-go-check scripts/hooks/post-write-go-check.js standard,strict",
+        "matcher": "Write"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js post-write-php-check scripts/hooks/post-write-php-check.js standard,strict",
+        "matcher": "Write"
+      }
+    ],
+    "stop": [
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js stop-validate-generated scripts/hooks/stop-validate-generated.js standard,strict"
+      },
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js cost-tracker scripts/hooks/cost-tracker.js standard,strict"
+      }
+    ],
+    "preCompact": [
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js pre-compact scripts/hooks/pre-compact.js standard,strict"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node ./scripts/hooks/run-with-flags.js user-prompt-submit scripts/hooks/user-prompt-submit.js standard,strict"
+      }
+    ]
+  }
+}

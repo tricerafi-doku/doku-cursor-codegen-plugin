@@ -1,0 +1,19 @@
+{
+  "name": "doku-codegen",
+  "displayName": "DOKU Codegen",
+  "version": "1.2.0",
+  "description": "Generate DOKU API client code in any language — auto-detects tech stack, fetches live API specs from developers.doku.com",
+  "author": {
+    "name": "DOKU Engineering",
+    "email": "technology@doku.com"
+  },
+  "homepage": "https://github.com/tricerafi-doku/doku-cursor-codegen-plugin",
+  "repository": "https://github.com/tricerafi-doku/doku-cursor-codegen-plugin",
+  "license": "MIT",
+  "keywords": [
+    "doku", "payment", "payment-gateway", "sdk", "code-generation",
+    "virtual-account", "checkout", "qris", "snap", "fintech",
+    "java", "spring-boot", "python", "nodejs", "golang"
+  ],
+  "logo": "assets/logo.svg"
+}

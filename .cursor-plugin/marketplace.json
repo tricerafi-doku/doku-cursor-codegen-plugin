@@ -1,0 +1,18 @@
+{
+  "name": "doku-codegen-marketplace",
+  "owner": {
+    "name": "DOKU Engineering",
+    "email": "technology@doku.com"
+  },
+  "metadata": {
+    "description": "DOKU code generation tooling for Cursor",
+    "version": "1.2.0"
+  },
+  "plugins": [
+    {
+      "name": "doku-codegen",
+      "source": "./plugins/doku-codegen",
+      "description": "Generate DOKU API client code in any language — auto-detects tech stack, fetches live API specs from developers.doku.com, supports Java/Kotlin/Python/Node.js/Go/PHP"
+    }
+  ]
+}
