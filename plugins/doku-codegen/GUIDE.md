@@ -1,41 +1,41 @@
 # DOKU Codegen — User Guide
 
-Install, use, and debug the DOKU Codegen plugin for Cursor. Assumes you're on Cursor desktop IDE (not the Cursor Agent cloud app).
+Install, use, and troubleshoot the DOKU Codegen plugin for Cursor.
+
+> Cursor ships two apps: the **desktop IDE** (VS Code fork with a code editor and file tree) and the **Cursor Agent** cloud app. This plugin runs in the **desktop IDE**.
 
 ---
 
 ## What this plugin does
 
-Turns Cursor's Agent into a DOKU integration engineer. In one prompt:
+In one prompt, the plugin's Agent:
 
-1. Detects your project's language and framework
-2. Fetches the live DOKU API spec from `developers.doku.com` (never guesses from training data)
-3. Collects your DOKU merchant credentials
-4. Generates a production-ready API client — signature helpers, HTTP client, DTOs, error handling, tests, `.env.example`
-5. Runs quality/security hooks around every file write
-6. Reports a production readiness checklist before you ship
+1. Detects your project's language and framework.
+2. Fetches the live DOKU API spec from `developers.doku.com`.
+3. Collects your DOKU merchant credentials.
+4. Generates a production-ready API client — signature helpers, HTTP client, DTOs, error handling, tests, `.env.example`.
+5. Runs quality and security checks around every file it writes.
+6. Reports a production-readiness checklist.
 
-Supported: Java (Spring Boot), Kotlin (Spring Boot), Python (FastAPI/Flask/Django), Node.js (Express/NestJS), Go (Gin), PHP (Laravel).
+Supported stacks: **Java** (Spring Boot), **Kotlin** (Spring Boot), **Python** (FastAPI/Flask/Django), **Node.js** (Express/NestJS), **Go** (Gin), **PHP** (Laravel).
 
 ---
 
 ## 1. Install
 
-### Option A — From the marketplace (recommended)
+### From the marketplace (recommended)
 
-1. Open Cursor.
+1. Open the Cursor desktop IDE.
 2. Left sidebar → **Customize**.
 3. Under **Repositories**, click the `+` icon.
 4. Paste:
    ```
    https://github.com/tricerafi-doku/doku-cursor-codegen-plugin
    ```
-5. In **Customize → Plugins**, search `doku`, click **Add** on **DOKU Codegen**.
-6. Fully quit Cursor (`Cmd+Q`) and reopen — plugins load at launch.
+5. Under **Customize → Plugins**, search `doku` and click **Add** on **DOKU Codegen**.
+6. Fully quit Cursor (`Cmd+Q`) and reopen. Plugins load at launch.
 
-### Option B — Local dev install
-
-Only needed if you want to edit the plugin itself.
+### Local install (for editing the plugin itself)
 
 ```bash
 git clone https://github.com/tricerafi-doku/doku-cursor-codegen-plugin.git
@@ -44,32 +44,35 @@ mkdir -p ~/.cursor/plugins/local
 cp -R plugins/doku-codegen ~/.cursor/plugins/local/doku-codegen
 ```
 
-**Do not `ln -s`** — Cursor rejects symlinks pointing outside `~/.cursor/plugins/local/`. Use `cp -R` and re-copy after every edit.
+Cursor rejects symbolic links whose target lives outside `~/.cursor/plugins/local/`. Use `cp -R` and re-copy after edits.
 
 ### Verify the install
 
-- **Customize → Plugins** should list "DOKU Codegen"
-- Click it — you should see: **2 Subagents**, **7 Commands**, **8 Skills**, **1 Hooks group**
-- In Agent chat, type `/gen` — autocomplete should suggest `/generate`
+After the restart:
+
+- **Customize → Plugins** lists **DOKU Codegen**.
+- Clicking it shows **2 Subagents**, **7 Commands**, **8 Skills**, **1 Hooks group**.
+- In Agent chat, typing `/gen` autocompletes to `/generate`.
 
 ---
 
 ## 2. First-run setup
 
-### Credentials
+### Provide credentials
 
-Two ways to provide them; pick one:
+Get your `CLIENT_ID` and `SECRET_KEY` from the **DOKU Dashboard → Integration → API Keys**. UAT (sandbox) and Production have separate keys.
 
-**A) Let the plugin ask you** (recommended for demos):
+Two ways to provide them; pick one.
 
-Type in Agent chat:
+**Let the plugin prompt you.** In Agent chat:
+
 ```
 Generate a DOKU Virtual Account client
 ```
 
-The `setup-credentials` skill runs and prompts you for Client ID + Secret Key. Values are saved to `<project>/.claude/doku-codegen.local.md`.
+The plugin asks for the values and saves them to `<project>/.claude/doku-codegen.local.md`.
 
-**B) Pre-create the config file** (recommended for scripted setups):
+**Pre-create the config file.**
 
 ```bash
 mkdir -p .claude
@@ -82,11 +85,11 @@ ENVIRONMENT: sandbox
 EOF
 ```
 
-Where to get credentials: **DOKU Dashboard → Integration → API Keys**. UAT and Production have separate keys.
+`.claude/doku-codegen.local.md` is automatically added to `.gitignore` — credentials never leave your machine.
 
-### Project folder
+### Open your project folder
 
-Open a **specific folder** in Cursor (File → Open Folder). The plugin operates on `${workspaceFolder}` — one project at a time. Everything the plugin reads and writes is relative to this folder.
+**File → Open Folder** in Cursor. The plugin reads and writes files relative to the folder you have open. One project at a time.
 
 ---
 
@@ -94,156 +97,150 @@ Open a **specific folder** in Cursor (File → Open Folder). The plugin operates
 
 ### The one-command flow
 
+In Agent chat:
+
 ```
 Generate a DOKU checkout client in this project
 ```
 
-That's it. The plugin handles:
-- `detect-stack` → find language/framework
-- `fetch-api-spec` → scrape developers.doku.com
-- `setup-credentials` → prompt if missing
-- `sdk-generator` agent → write all the code
-- `integration-validator` agent → audit the result
+The plugin then, in order:
 
-### Slash commands (explicit invocation)
+- Detects the stack
+- Fetches the relevant DOKU API spec
+- Prompts for credentials if not yet configured
+- Generates the client under your project's conventions
+- Audits the generated files
 
-Type in Agent chat:
+### Slash commands
 
 | Command | Purpose |
 |---|---|
-| `/generate [payment-method]` | Full setup + generate. Main entry. |
-| `/spec [payment-method]` | Refetch a specific API spec |
-| `/checklist` | Production readiness checks |
-| `/test` | Send a real request to DOKU sandbox to verify signature + connectivity |
-| `/postman` | Export a Postman collection with signature pre-request script |
-| `/save-session [note]` | Snapshot current generation state so you can resume later |
-| `/resume-session` | Resume a saved session |
+| `/generate [payment-method]` | Main entry point — full setup + generate |
+| `/spec [payment-method]` | Fetch and save a specific API spec |
+| `/checklist` | Run production-readiness checks |
+| `/test` | Send a real request to DOKU sandbox to verify signature and connectivity |
+| `/postman` | Export a Postman collection with a signature pre-request script |
+| `/save-session [note]` | Snapshot the current generation state |
+| `/resume-session` | Continue from a saved snapshot |
 
-### Skills (auto-triggered by natural language)
+### Auto-triggered skills
 
-You don't need to type slash commands. Say things like:
+You can also speak naturally — the plugin routes to the right skill:
 
-| Say | Runs |
+| You say | Plugin runs |
 |---|---|
-| "detect the stack" / "what language is this" | `detect-stack` |
-| "fetch the DOKU spec" / "load API docs" | `fetch-api-spec` |
-| "set up credentials" / "rotate API key" | `setup-credentials` |
-| "test DOKU integration" / "verify sandbox" | `mock-test` |
-| "production checklist" / "ready to ship" | `production-checklist` |
-| "upgrade DOKU client" / "refresh after spec change" | `upgrade` |
+| "detect the stack", "what language is this" | `detect-stack` |
+| "fetch the DOKU spec", "load API docs" | `fetch-api-spec` |
+| "set up credentials", "rotate API key" | `setup-credentials` |
+| "test DOKU integration", "verify sandbox" | `mock-test` |
+| "production checklist", "ready to ship" | `production-checklist` |
+| "upgrade DOKU client", "refresh after spec change" | `upgrade` |
 | "generate Postman collection" | `generate-postman` |
 
-### Agents (specialized system prompts)
+### Agents
 
-| Agent | When it kicks in |
-|---|---|
-| `sdk-generator` | Any Write of DOKU client code — always runs under this system prompt |
-| `integration-validator` | After generation, audits the whole file set for security gaps |
+- **`sdk-generator`** — carries the system prompt used whenever the plugin writes DOKU client code. Language-specific standards live in `standards/`.
+- **`integration-validator`** — audits the generated file set for security gaps after generation.
 
 ### What the plugin persists
 
-- `.claude/doku-codegen.local.md` — credentials, detected stack, saved API spec (**this file is gitignored automatically**)
-- Generated source code — under whatever paths match your project's conventions (`src/`, `app/`, etc.)
-- Config templates — `.env.example`, `.gitignore` additions
+| File | Purpose |
+|---|---|
+| `.claude/doku-codegen.local.md` | Credentials, detected stack, saved API spec (gitignored) |
+| Generated source | Under your project's conventional paths (`src/`, `app/`, etc.) |
+| `.env.example` | Placeholder env-var template committed alongside code |
 
 ---
 
-## 4. Debugging
+## 4. Troubleshooting
 
-### Symptom: "DOKU Codegen doesn't show up in Customize"
+### DOKU Codegen doesn't appear in Customize
 
-1. Confirm plugin files are in place:
+1. Confirm files are in place after a local install:
    ```bash
    ls ~/.cursor/plugins/local/doku-codegen
    ```
-   Should show `agents/ commands/ skills/ hooks/ scripts/ standards/`. If empty or missing, redo the `cp -R` (Option B) or re-add the repo (Option A).
-2. Confirm you did a **full quit** (`Cmd+Q`), not just window close.
-3. Cursor logs: **View → Output → dropdown → "Cursor MCP" / "Extensions"** — grep for `loadUserLocalPlugin doku-codegen`. If you see `rejected: symlink target ... is outside`, you used `ln -s` — switch to `cp -R`.
+   You should see `agents/ commands/ skills/ hooks/ scripts/ standards/`.
+2. Fully quit Cursor (`Cmd+Q`) — window close is not enough.
+3. Open **View → Output** and search for `loadUserLocalPlugin doku-codegen`. If you see `rejected: symlink target ... is outside`, replace the symlink with `cp -R`.
 
-### Symptom: `/generate` doesn't autocomplete
+### `/generate` doesn't autocomplete
 
 - Slash-command autocomplete lives in Agent chat, not the Command Palette. Type `/` at the start of a chat message.
-- If plugin is loaded but slash commands are missing, check `plugins/doku-codegen/commands/*.md` all have `name:` and `description:` in frontmatter.
 - Restart Cursor after any manual edit to plugin files.
 
-### Symptom: Hook doesn't fire on file write
+### The post-write hook doesn't fire
 
-- Hooks fire on `postToolUse` for Write/Edit — the Agent must actually invoke the Write tool, not just show code in chat.
-- Node must be on PATH. Test: `which node` in Cursor's integrated terminal.
-- Look at Cursor's Output panel → hook stderr appears here.
-- Check `scripts/lib/hook-flags.js` — hooks respect `DOKU_HOOK_PROFILE` env var. If you set `DOKU_HOOK_PROFILE=off` in your shell, no hooks fire.
+- Hooks fire when the Agent invokes the Write or Edit tool. If the plugin only *shows* code in chat without writing files, no hook runs.
+- Node must be on your `PATH`. Confirm with `which node` in the integrated terminal.
+- Hook stderr appears in Cursor's **View → Output** panel.
 
-### Symptom: Spec fetch fails
+### Spec fetch fails
 
-- `fetch-api-spec` uses Cursor's WebFetch tool against `developers.doku.com`. That URL must be reachable from your network.
-- If you're behind a corporate proxy, WebFetch may fail — the plugin will fall back to asking you for the spec manually.
-- Cached spec lives in `.claude/doku-codegen.local.md` under `API_SPEC`. Delete that block to force a refetch.
+- The plugin uses Cursor's WebFetch against `developers.doku.com`. That domain must be reachable.
+- Behind a corporate proxy, WebFetch may fail; the plugin falls back to asking you for the spec manually.
+- To force a refetch, delete the `API_SPEC` block from `.claude/doku-codegen.local.md`.
 
-### Symptom: Generated code raises `ValueError: DOKU_CLIENT_ID must not be empty` on first run
+### Generated Python code raises `ValueError: DOKU_CLIENT_ID must not be empty`
 
-The generated Python entry point may not have called `load_dotenv()`. Two-line fix:
+Python does not read `.env` files automatically. Fix by adding the two lines at the top of `app/main.py` (before any other imports that read env):
 
 ```python
-# app/main.py (top of file)
 from dotenv import load_dotenv
 load_dotenv()
 ```
 
-And add `python-dotenv>=1.0.0` to `requirements.txt`.
+Add `python-dotenv>=1.0.0` to `requirements.txt`, then `pip install python-dotenv`. Alternatively, model `DokuConfig` as a `pydantic_settings.BaseSettings` subclass, which reads `.env` automatically.
 
-Newer versions of the plugin catch this at generation time via `post-write-python-check.js` — you'll see a WARN in Cursor's Output panel: `Reads DOKU_* env var without load_dotenv() or pydantic_settings.BaseSettings — see standards/python.md`.
+The `post-write-python-check` hook will emit a WARN when the generated code contains `os.environ.get("DOKU_...")` without either loader in place. Check `standards/python.md` for the required pattern.
 
-### Symptom: `/test` returns 401 / 403 from DOKU
+### `/test` returns 401 or 403
 
-- Your credentials in `.claude/doku-codegen.local.md` are wrong or expired. Re-run:
-  ```
-  /environment-check
-  ```
-  or manually edit the file.
-- UAT keys don't work against production URL and vice versa. Check `ENVIRONMENT: sandbox|production` matches your key.
-- Signature debugging: run `/test --verbose` (if supported) to see the string-to-sign the plugin computed vs the one DOKU expected. First few bytes usually reveal which header is misordered.
+- The credentials in `.claude/doku-codegen.local.md` are wrong or expired. Re-run `/setup-credentials` or edit the file.
+- UAT keys don't work against the production URL and vice versa. Confirm `ENVIRONMENT: sandbox|production` matches the key.
+- If the signature is wrong, compare the string-to-sign in your logs against DOKU's documented format for the specific API — the plugin logs the components before HMAC when run in verbose mode.
 
-### Symptom: Post-write hook flagged a warning
+### A post-write hook flagged a warning
 
-The finding is in Cursor's Output panel:
+The finding is in **View → Output**:
+
 ```
 [doku-codegen] Quality check: config.py
-  [WARN] Reads DOKU_* env var without load_dotenv() ...
+  [WARN] Reads DOKU_* env var without load_dotenv() or pydantic_settings.BaseSettings — see standards/python.md
 ```
 
-Open `plugins/doku-codegen/standards/python.md` (or `.md` for your language) — the standards doc explains the required pattern. Fix the code, save — hook re-runs.
+Open the standards document referenced in the warning (`standards/python.md`, `standards/java.md`, etc.) for the required pattern.
 
-To temporarily silence (not recommended):
+To temporarily silence a specific hook (not recommended for production code):
+
 ```bash
 export DOKU_DISABLED_HOOKS="post-write-python-check"
 ```
 
-### Symptom: "MCP server missing"
-
-Not applicable — this plugin has no MCP server. If you see this error, you're looking at `doku-payment` logs, not `doku-codegen`.
-
 ### Where the logs are
 
-- **Cursor Output panel** → dropdown → "Cursor MCP", "Extensions", or plugin-name-specific channels
-- **Hook stderr** → also appears in Output panel and in the Agent chat's tool-call detail view (click the arrow next to the tool call)
-- **Cursor developer console** → `Help → Toggle Developer Tools → Console` (for deeper platform-level errors)
+- **Cursor Output panel:** `View → Output` → dropdown → language server, plugin, or extension channels
+- **Hook stderr:** appears in the Output panel and in each tool call's detail view (click the arrow next to the tool name in the chat)
+- **Cursor developer console:** `Help → Toggle Developer Tools → Console`
 
 ---
 
 ## 5. Uninstall
 
-**From marketplace install:** Customize → Plugins → click **DOKU Codegen** → **Uninstall**.
+**Marketplace install:** Customize → Plugins → open **DOKU Codegen** → **Uninstall**.
 
-**From local install:**
+**Local install:**
+
 ```bash
 rm -rf ~/.cursor/plugins/local/doku-codegen
 ```
+
 Restart Cursor.
 
 ---
 
-## 6. Where to file bugs / ask questions
+## 6. Getting help
 
-- **Codegen bugs** (wrong signature, missing dependency, hook false positive): file against `tricerafi-doku/doku-cursor-codegen-plugin` on GitHub, including the generated file and the standards section it violates.
-- **DOKU API bugs / spec drift**: report to `technology@doku.com` — the plugin follows whatever the live spec says.
-- **Plugin scaffolding / Cursor install issues**: check `~/.cursor/plugins/local/doku-codegen` layout matches this repo's `plugins/doku-codegen/` — if not, re-copy.
+- **Plugin bugs** (wrong signature, missing dependency, hook false positive): open an issue at https://github.com/tricerafi-doku/doku-cursor-codegen-plugin/issues with the generated file and the standards section it violates.
+- **DOKU API questions**: email `technology@doku.com`. The plugin follows whatever the live spec on `developers.doku.com` says.
+- **Cursor install questions**: consult Cursor's own docs at https://cursor.com/docs/plugins.
