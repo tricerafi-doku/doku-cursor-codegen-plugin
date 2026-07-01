@@ -11,6 +11,50 @@ Extends `coding.md` for Python-specific generated code.
 - Detect pip (requirements.txt), poetry (pyproject.toml with [tool.poetry]), or uv (pyproject.toml with [tool.uv])
 - Add dependencies to the detected manifest
 
+## Configuration & Environment Variables
+
+**Rule:** any generated code that reads `os.environ` at import-time or app-startup MUST explicitly load `.env` first. Python does NOT auto-load `.env`; without loading, `os.environ.get("DOKU_CLIENT_ID")` returns `""` and config validation fails immediately (e.g. `ValueError: DOKU_CLIENT_ID must not be empty`).
+
+Pick exactly one of the two approaches below — never both.
+
+### Approach A — `python-dotenv` (recommended when config uses `@dataclass` or plain `os.environ`)
+
+1. Add to the dependency manifest:
+   ```
+   python-dotenv>=1.0.0
+   ```
+2. At the very top of every app entry point (`app/main.py`, `manage.py`, `wsgi.py`, CLI entrypoints), before any local imports that read env:
+   ```python
+   from dotenv import load_dotenv
+   load_dotenv()
+   ```
+3. `load_dotenv()` looks for `.env` in CWD and walks up. This must run before `DokuConfig.from_env()` or equivalent — otherwise the config object is constructed with empty strings and `__post_init__` raises.
+
+### Approach B — `pydantic-settings BaseSettings` (recommended when project already uses Pydantic)
+
+1. Add to the dependency manifest:
+   ```
+   pydantic-settings>=2.0.0
+   ```
+2. Model config as a `BaseSettings` subclass — auto-loads `.env` from CWD:
+   ```python
+   from pydantic_settings import BaseSettings, SettingsConfigDict
+
+   class DokuConfig(BaseSettings):
+       model_config = SettingsConfigDict(env_file=".env", env_prefix="DOKU_", extra="ignore")
+
+       client_id: str
+       secret_key: str
+       environment: str = "sandbox"
+   ```
+3. Instantiation `DokuConfig()` reads `.env` automatically — no `load_dotenv()` call needed.
+4. **Do NOT also import `dotenv`** — the two approaches are alternatives, not additive.
+
+### Enforcement
+
+- The `post-write-python-check.js` hook flags any Python entry-point file that calls `os.environ.get(...)` on a DOKU_* variable when neither `load_dotenv` (Approach A) nor `pydantic_settings` (Approach B) appears in the same module or its transitively-imported config module.
+- The `production-checklist` skill fails go-live if `.env` is referenced but no `.env` loading mechanism is wired up.
+
 ## HTTP Client
 - **Async projects** (FastAPI, aiohttp): Use `httpx` with async support
 - **Sync projects** (Flask, Django): Use `httpx` (sync mode) or `requests`
