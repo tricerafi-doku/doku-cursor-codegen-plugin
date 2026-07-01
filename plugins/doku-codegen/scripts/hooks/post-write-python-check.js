@@ -6,6 +6,8 @@
  *   - print() in non-test code (should use logging)
  *   - Hardcoded DOKU credentials
  *   - Missing input validation before API call (no Pydantic/manual checks)
+ *   - Reads DOKU_* env vars without load_dotenv() / pydantic_settings.BaseSettings
+ *     (see standards/python.md — Configuration & Environment Variables)
  *
  * Profile: standard, strict
  */
@@ -29,6 +31,15 @@ const CHECKS = [
     pattern: /def\s+\w+\s*\([^)]*request[^)]*\)/,
     antiPattern: /(?:\.model_validate|\.parse_obj|BaseModel|validate_|@validator|@field_validator)/,
     message: 'Handler accepts a request parameter but no Pydantic validation found in this file',
+    severity: 'WARN',
+  },
+  {
+    // Flags any file that reads a DOKU_* env var via os.environ.get / os.environ[...] / os.getenv
+    // unless the file also wires up a .env loader (python-dotenv) or pydantic-settings BaseSettings.
+    // See standards/python.md — Configuration & Environment Variables.
+    pattern: /os\.(?:environ\.get|environ\[|getenv)\s*\(?\s*["']DOKU_/,
+    antiPattern: /(?:from\s+dotenv\s+import\s+load_dotenv|load_dotenv\s*\(|from\s+pydantic_settings\s+import|class\s+\w+\s*\(\s*BaseSettings)/,
+    message: 'Reads DOKU_* env var without load_dotenv() or pydantic_settings.BaseSettings — see standards/python.md',
     severity: 'WARN',
   },
 ];
