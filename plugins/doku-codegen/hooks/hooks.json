@@ -7,11 +7,11 @@
     ],
     "preToolUse": [
       {
-        "command": "node ./scripts/hooks/run-with-flags.js pre-write-doku-config scripts/hooks/pre-write-doku-config.js standard,strict",
+        "command": "node ./scripts/hooks/run-with-flags.js pre-write-doku-config scripts/hooks/pre-write-doku-config.js minimal,standard,strict",
         "matcher": "Write|Edit"
       },
       {
-        "command": "node ./scripts/hooks/run-with-flags.js config-protection scripts/hooks/config-protection.js standard,strict",
+        "command": "node ./scripts/hooks/run-with-flags.js config-protection scripts/hooks/config-protection.js minimal,standard,strict",
         "matcher": "Write|Edit"
       }
     ],

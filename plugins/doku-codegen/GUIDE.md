@@ -51,7 +51,7 @@ Cursor rejects symbolic links whose target lives outside `~/.cursor/plugins/loca
 After the restart:
 
 - **Customize → Plugins** lists **DOKU Codegen**.
-- Clicking it shows **2 Subagents**, **7 Commands**, **8 Skills**, **1 Hooks group**.
+- Clicking it shows **2 Subagents**, **8 Commands**, **9 Skills**, **1 Hooks group**.
 - In Agent chat, typing `/gen` autocompletes to `/generate`.
 
 ---
@@ -220,7 +220,7 @@ Three environment variables control hook execution, from most targeted to most g
 | Env var | Scope | When to use |
 |---|---|---|
 | `DOKU_DISABLED_HOOKS="<hook-id>[,<hook-id>...]"` | Per-hook | Silence one or a few noisy hooks; leave the rest running. Hook IDs match the first arg passed to `run-with-flags.js` (e.g. `post-write-python-check`, `pre-write-doku-config`, `session-start`). |
-| `DOKU_HOOK_PROFILE="minimal"` | Profile-based | Disable the "standard" and "strict" profile hooks; keep only critical ones. Profiles are declared per-hook in `hooks.json`. |
+| `DOKU_HOOK_PROFILE="minimal"` | Profile-based | Disables the noisy per-language quality hooks and stop-time validators; keeps the two runtime safety guards (`pre-write-doku-config` blocks destructive credential overwrites, `config-protection` blocks weakened linter/formatter configs). Profiles are declared per-hook in `hooks.json`. |
 | `DOKU_HOOKS_DISABLED=1` | Global kill | Turns off every doku-codegen hook. Useful when troubleshooting whether a hook is causing an Agent problem, or when running a scripted operation that must not be interrupted. |
 
 Example — silence a single noisy hook:

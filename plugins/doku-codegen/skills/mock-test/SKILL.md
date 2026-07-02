@@ -26,9 +26,16 @@ Extract from config:
 - `CLIENT_ID`
 - `SECRET_KEY`
 - `BASE_URL` (or derive from ENVIRONMENT)
-- `API_SPEC.API_ENDPOINT` — e.g. `POST /checkout/v1/payment`
-- `API_SPEC.REQUEST_SCHEMA` — to build minimal valid body
-- `API_SPEC.SIGNATURE_ALGORITHM`
+
+**Select the active spec.** If the user specified an API (e.g. "test checkout") use that slug; otherwise if only one entry exists in `API_SPECS`, use it. Fall back to the legacy top-level `API_SPEC` only when `API_SPECS` is absent.
+
+- Prefer: `API_SPECS[<slug>].API_ENDPOINT` — e.g. `POST /checkout/v1/payment`
+- Prefer: `API_SPECS[<slug>].ENDPOINTS[0]` if `API_ENDPOINT` is not set
+- Prefer: `API_SPECS[<slug>].REQUEST_SCHEMA` — to build minimal valid body
+- Prefer: `API_SPECS[<slug>].SIGNATURE_ALGORITHM`
+- Fallback (legacy configs only): `API_SPEC.API_ENDPOINT`, `API_SPEC.REQUEST_SCHEMA`, `API_SPEC.SIGNATURE_ALGORITHM`
+
+If `API_SPECS` has multiple entries and the user did not name one, ask which API to test before proceeding — do not silently pick the last-fetched.
 
 ---
 

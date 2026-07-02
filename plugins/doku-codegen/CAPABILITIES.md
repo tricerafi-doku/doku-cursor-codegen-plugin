@@ -17,7 +17,7 @@
 ## Validate & Protect
 - **37-point security audit** after generation covering hardcoded secrets, signature correctness, header completeness, API wiring, code quality, and inbound notification safety (N1–N4)
 - Auto-fixes safe issues; blocks the release if critical checks fail
-- **14 live hooks** guard every file write: block debug prints, hardcoded credentials, weakened linter configs, and destructive overwrite of your credentials file (the `pre-write-doku-config` hook now rejects writes that would clear existing `CLIENT_ID` or `SECRET_KEY`)
+- **14 live hooks** guard every file write. Two guards actually block writes (exit 2): `config-protection` on weakened linter/formatter configs and `pre-write-doku-config` on destructive credential-file overwrites (rejects writes that would clear existing `CLIENT_ID` or `SECRET_KEY`). The remaining per-language hooks flag debug prints, hardcoded credentials, and missing validation as advisory findings — you see them in the tool-call output, but the write is not blocked.
 
 ## Test & Ship
 - Sends a real test request to DOKU sandbox to verify signature and connectivity

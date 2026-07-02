@@ -107,8 +107,8 @@ Fully restart Cursor.
 
 ## Design Principles
 
-- **No hardcoded URLs** — always navigates developers.doku.com from root by keyword matching
+- **Agent-native spec discovery** — prefers `developers.doku.com/llms.txt` as the index and `<url>.md` for clean-Markdown page bodies, with `sitemap-pages.xml` as a last-resort fallback. Endpoint URLs are always resolved from the fetched spec, never assumed.
 - **Prerequisite following** — fetches auth/token pages referenced by the main API page
 - **Single entry point** — `setup-project` runs missing steps inline automatically
-- **Spec versioning** — `API_SPEC_PREVIOUS` archived on every refresh for diffing
+- **Per-API spec versioning** — specs are stored under `API_SPECS[<slug>]`, with the previous version of each slug archived to `API_SPECS_PREVIOUS[<slug>]` on refresh. Multiple payment methods can coexist in a single project without one overwriting another; `/upgrade` diffs same-slug old vs new only.
 - **Responsibility-based skills** — adding a new DOKU API never requires a new skill
